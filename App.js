@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -37,15 +38,17 @@ function HomeScreen({ navigation }) {
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Tree" component={Tree} options={{ title: 'Decorate a Tree' }} />
-        <Stack.Screen name="Snowman" component={Snowman} options={{ title: 'Build a Snowman' }} />
-        <Stack.Screen name="Snowflake" component={Snowflake} options={{ title: 'Make a Snowflake' }} />
-        <Stack.Screen name="Card" component={Card} options={{ title: 'Make a Card' }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Home">
+          <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Tree" component={Tree} options={{ title: 'Decorate a Tree' }} />
+          <Stack.Screen name="Snowman" component={Snowman} options={{ title: 'Build a Snowman' }} />
+          <Stack.Screen name="Snowflake" component={Snowflake} options={{ title: 'Make a Snowflake' }} />
+          <Stack.Screen name="Card" component={Card} options={{ title: 'Make a Card' }} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 

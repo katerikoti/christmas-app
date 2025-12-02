@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -29,31 +31,20 @@ export default function Card() {
   const [stickers, setStickers] = useState([]); // {id, emoji, x, y, rotation}
   const canvasOffset = useRef({ x: 0, y: 0 });
   const idCounter = useRef(1);
-  const stickerTouchRef = useRef({});
-  const isInteractingStickerRef = useRef(false);
+  // sticker gestures are handled by the Sticker component (reanimated + gesture-handler)
 
   function onLayoutCanvas(e) {
-    const { x, y } = e.nativeEvent.layout;
-    canvasOffset.current = { x, y };
+    const { x, y, width, height } = e.nativeEvent.layout;
+    canvasOffset.current = { x, y, width, height };
   }
 
   function handleStart(evt) {
     const touch = evt.nativeEvent;
-    // if touch is on any sticker, don't start drawing
-    if (touch.pageX && touch.pageY) {
-      for (const s of stickers) {
-        const left = canvasOffset.current.x + s.x;
-        const top = canvasOffset.current.y + s.y;
-        if (touch.pageX >= left && touch.pageX <= left + 48 && touch.pageY >= top && touch.pageY <= top + 48) {
-          isInteractingStickerRef.current = true;
-          return;
-        }
-      }
-    }
-    if (isInteractingStickerRef.current) return; // don't start drawing when interacting with stickers
     const x = touch.locationX;
     const y = touch.locationY;
-    const newStroke = { color, width: strokeWidth, points: [{ x, y }] };
+    // If eraser is active, use the current background color for the stroke
+    const strokeColor = activeTool === 'eraser' ? bgColor : color;
+    const newStroke = { color: strokeColor, width: strokeWidth, points: [{ x, y }] };
     setCurrent(newStroke);
   }
 
@@ -84,8 +75,10 @@ export default function Card() {
   function addSticker(emoji) {
     const id = idCounter.current++;
     // place in center of canvas
-    const x = SCREEN_WIDTH / 2 - 24;
-    const y = SCREEN_HEIGHT / 2 - 24;
+    const cw = canvasOffset.current.width || SCREEN_WIDTH;
+    const ch = canvasOffset.current.height || SCREEN_HEIGHT;
+    const x = cw / 2 - 24;
+    const y = ch / 2 - 24;
     setStickers(arr => [...arr, { id, emoji, x, y, rotation: 0 }]);
     setShowStickers(false);
   }
@@ -94,80 +87,140 @@ export default function Card() {
     setStickers(arr => arr.map(s => (s.id === id ? { ...s, x, y, rotation: rotation ?? s.rotation } : s)));
   }
 
-  function handleStickerGrant(id, e) {
-    const { pageX, pageY } = e.nativeEvent;
-    // decide whether this gesture is a move or rotate based on touch distance from sticker center
-    const s = stickers.find(x => x.id === id);
-    let mode = 'move';
-    if (s) {
-      const centerX = canvasOffset.current.x + s.x + 24;
-      const centerY = canvasOffset.current.y + s.y + 24;
-      const dx = pageX - centerX;
-      const dy = pageY - centerY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      // if touch is near edge (outside ~18px) treat as rotate gesture
-      if (dist > 16) mode = 'rotate';
-    }
-    stickerTouchRef.current[id] = { startX: pageX, startY: pageY, moved: false, mode };
-    isInteractingStickerRef.current = true;
-  }
+  // remember previous tool so we can disable pen/eraser while interacting with a sticker
+  const prevToolRef = useRef(null);
 
-  function handleStickerMove(id, e) {
-    const { pageX, pageY } = e.nativeEvent;
-    const info = stickerTouchRef.current[id] || {};
-    const dx = Math.abs((pageX || 0) - (info.startX || 0));
-    const dy = Math.abs((pageY || 0) - (info.startY || 0));
-    if (dx > 4 || dy > 4) info.moved = true;
-    stickerTouchRef.current[id] = info;
-    const s = stickers.find(x => x.id === id);
-    if (!s) return;
-    if (info.mode === 'rotate') {
-      // rotate based on angle from sticker center to touch
-      const centerX = canvasOffset.current.x + s.x + 24;
-      const centerY = canvasOffset.current.y + s.y + 24;
-      const angle = Math.atan2(pageY - centerY, pageX - centerX) * (180 / Math.PI);
-      updateSticker(id, s.x, s.y, angle);
+  function handleStickerGestureStart() {
+    if (activeTool === 'pen' || activeTool === 'eraser') {
+      prevToolRef.current = activeTool;
+      setActiveTool(null);
     } else {
-      const x = pageX - canvasOffset.current.x - 24;
-      const y = pageY - canvasOffset.current.y - 24;
-      updateSticker(id, x, y);
+      prevToolRef.current = null;
     }
   }
 
-  function handleStickerRelease(id, e) {
-    // release ends interaction; do not treat as tap for rotation anymore
-    delete stickerTouchRef.current[id];
-    isInteractingStickerRef.current = false;
+  function handleStickerGestureEnd() {
+    if (prevToolRef.current === 'pen' || prevToolRef.current === 'eraser') {
+      setActiveTool(prevToolRef.current);
+    }
+    prevToolRef.current = null;
   }
 
-  /* Rotation handle: start rotating a sticker by tracking angle */
-  function handleRotateGrant(id, e) {
-    const { pageX, pageY } = e.nativeEvent;
-    stickerTouchRef.current[id] = { startX: pageX, startY: pageY, mode: 'rotate' };
+  // sticker gesture handling has moved into the Sticker component
+
+  // Hit-test helper: returns true if the touch is inside any sticker's bounds
+  function isTouchOnSticker(locationX, locationY) {
+    // sticker size matches styles.sticker (48 x 48)
+    const SIZE = 48;
+    for (let i = 0; i < stickers.length; i++) {
+      const s = stickers[i];
+      const left = s.x;
+      const top = s.y;
+      if (locationX >= left && locationX <= left + SIZE && locationY >= top && locationY <= top + SIZE) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  function handleRotateMove(id, e) {
-    // keep for backward compatibility (not used if rotate handle removed)
-    const { pageX, pageY } = e.nativeEvent;
-    const s = stickers.find(x => x.id === id);
-    if (!s) return;
-    const centerX = canvasOffset.current.x + s.x + 24;
-    const centerY = canvasOffset.current.y + s.y + 24;
-    const angle = Math.atan2(pageY - centerY, pageX - centerX) * (180 / Math.PI);
-    updateSticker(id, s.x, s.y, angle);
-  }
+/*
+  Sticker component: uses react-native-gesture-handler v2 Gesture API
+  and react-native-reanimated v2 shared values. Supports simultaneous
+  pan + rotation gestures and reports final state via onUpdate.
+*/
+function Sticker({ emoji, id, initialX = 0, initialY = 0, initialRotation = 0, onUpdate, onGestureStart, onGestureEnd }) {
+  const transX = useSharedValue(initialX);
+  const transY = useSharedValue(initialY);
+  const rot = useSharedValue(initialRotation || 0);
 
-  function handleRotateRelease(id, e) {
-    delete stickerTouchRef.current[id];
-  }
+  // ensure shared values follow prop changes (parent persisted updates)
+  useEffect(() => {
+    transX.value = initialX;
+    transY.value = initialY;
+    rot.value = initialRotation || 0;
+  }, [initialX, initialY, initialRotation]);
+
+  let panStartX = 0;
+  let panStartY = 0;
+  let rotStart = 0;
+
+  // track whether we've already signalled gesture start to avoid duplicate calls
+  const interacting = useSharedValue(false);
+
+  const pan = Gesture.Pan()
+    .onStart(() => {
+      panStartX = transX.value;
+      panStartY = transY.value;
+      if (!interacting.value) {
+        interacting.value = true;
+        if (onGestureStart) runOnJS(onGestureStart)();
+      }
+    })
+    .onUpdate(e => {
+      transX.value = panStartX + (e.changeX ?? 0);
+      transY.value = panStartY + (e.changeY ?? 0);
+    })
+    .onEnd(() => {
+      if (onUpdate) runOnJS(onUpdate)(id, transX.value, transY.value, rot.value);
+      if (interacting.value) {
+        interacting.value = false;
+        if (onGestureEnd) runOnJS(onGestureEnd)();
+      }
+    });
+
+  const rotation = Gesture.Rotation()
+    .onStart(() => {
+      rotStart = rot.value || 0;
+      if (!interacting.value) {
+        interacting.value = true;
+        if (onGestureStart) runOnJS(onGestureStart)();
+      }
+    })
+    .onUpdate(e => {
+      const deg = (e.rotation || 0) * (180 / Math.PI);
+      rot.value = rotStart + deg;
+    })
+    .onEnd(() => {
+      if (onUpdate) runOnJS(onUpdate)(id, transX.value, transY.value, rot.value);
+      if (interacting.value) {
+        interacting.value = false;
+        if (onGestureEnd) runOnJS(onGestureEnd)();
+      }
+    });
+
+  const gesture = Gesture.Simultaneous(pan, rotation);
+
+  const aStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: transX.value },
+      { translateY: transY.value },
+      { rotate: `${rot.value}deg` },
+    ],
+  }));
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={[styles.sticker, aStyle]}>
+        <Text style={styles.stickerEmoji}>{emoji}</Text>
+      </Animated.View>
+    </GestureDetector>
+  );
+}
 
   return (
     <SafeAreaView style={styles.flex}>
       <View style={[styles.container, { backgroundColor: bgColor }]} onLayout={onLayoutCanvas}>
         <View
           style={styles.canvasWrapper}
-          onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => true}
+          onStartShouldSetResponder={(evt) => {
+            const isPen = activeTool === 'pen' || activeTool === 'eraser';
+            if (!isPen) return false;
+            const { locationX, locationY } = evt.nativeEvent;
+            // if touching a sticker, don't capture — let the sticker's gesture handler win
+            if (isTouchOnSticker(locationX, locationY)) return false;
+            return true;
+          }}
+          onMoveShouldSetResponder={() => activeTool === 'pen' || activeTool === 'eraser'}
           onResponderGrant={handleStart}
           onResponderMove={handleMove}
           onResponderRelease={handleEnd}
@@ -197,21 +250,19 @@ export default function Card() {
             )}
           </Svg>
 
-          {/* render stickers */}
+          {/* render stickers using the reanimated + gesture-handler Sticker component */}
           {stickers.map(st => (
-            <View
+            <Sticker
               key={`sticker-${st.id}`}
-              style={[
-                styles.sticker,
-                { left: st.x, top: st.y, transform: [{ rotate: `${st.rotation}deg` }] },
-              ]}
-              onStartShouldSetResponder={() => true}
-              onResponderGrant={e => handleStickerGrant(st.id, e)}
-              onResponderMove={e => handleStickerMove(st.id, e)}
-              onResponderRelease={e => handleStickerRelease(st.id, e)}
-            >
-              <Text style={styles.stickerEmoji}>{st.emoji}</Text>
-            </View>
+              id={st.id}
+              emoji={st.emoji}
+              initialX={st.x}
+              initialY={st.y}
+              initialRotation={st.rotation}
+              onGestureStart={handleStickerGestureStart}
+              onGestureEnd={handleStickerGestureEnd}
+              onUpdate={updateSticker}
+            />
           ))}
         </View>
 
