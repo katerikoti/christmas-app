@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions, Animated, Easing, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions, Animated, Easing, Image, TurboModuleRegistry } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -38,6 +38,8 @@ function HomeScreen({ navigation }) {
         </Pressable>
         <Text style={{marginTop:40, fontSize:12, color:'#cfcfcf'}}>Created by <Text style={{fontWeight:'bold'}}>katerikoti</Text></Text>
       </View>
+      {/* Snow only on Home screen */}
+      <Snow />
     </View>
   );
 }
@@ -130,7 +132,6 @@ export default function App() {
           <Stack.Screen name="Card" component={Card} options={{ title: 'Make a Card' }} />
         </Stack.Navigator>
       </NavigationContainer>
-      <Snow />
     </GestureHandlerRootView>
   );
 }
