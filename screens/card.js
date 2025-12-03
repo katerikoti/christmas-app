@@ -7,12 +7,24 @@ import {
   TouchableOpacity,
   Dimensions,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Sticker assets mapping (use keys as the "emoji" identifier for minimal change)
+const STICKER_IMAGES = {
+  ball: require('../assets/ball.png'),
+  bell: require('../assets/bell.png'),
+  chtree: require('../assets/chtree.png'),
+  flake: require('../assets/flake.png'),
+  gingerman: require('../assets/gingerman.png'),
+  mistletoe: require('../assets/mistletoe.png'),
+  present: require('../assets/present.png'),
+};
 
 function pointsToSvgPath(points = []) {
   if (points.length === 0) return '';
@@ -220,7 +232,8 @@ export default function Card() {
             { position: 'absolute' }, // ensure absolute for z-order
           ]}
         >
-          <Text style={styles.stickerEmoji}>{emoji}</Text>
+          {/* Render sticker image from assets mapping. Keep prop name `emoji` for compatibility. */}
+          <Image source={STICKER_IMAGES[emoji]} style={styles.stickerImage} />
         </Animated.View>
       </GestureDetector>
     );
@@ -391,9 +404,9 @@ export default function Card() {
             {activeTool === 'sticker' && (
               <View style={styles.panelContentTop}>
                 <View style={styles.stickerGrid}>
-                  {['🎁','🎄','⭐','❄️','⛄','🦌','🍪','🎀','🕯️','🧦'].map(emoji => (
-                    <TouchableOpacity key={emoji} style={styles.pickerStickerSmall} onPress={() => { addSticker(emoji); }}>
-                      <Text style={styles.pickerEmoji}>{emoji}</Text>
+                  {['ball','bell','chtree','flake','gingerman','mistletoe','present'].map(key => (
+                    <TouchableOpacity key={key} style={styles.pickerStickerSmall} onPress={() => { addSticker(key); }}>
+                      <Image source={STICKER_IMAGES[key]} style={styles.pickerImageSmall} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -436,6 +449,8 @@ const styles = StyleSheet.create({
   stickerEmoji: { fontSize: 36 },
   stickerGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', maxWidth: 160 },
   pickerStickerSmall: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', margin: 2, borderWidth: 0, borderColor: 'transparent', borderRadius: 6, backgroundColor: 'transparent' },
+  pickerImageSmall: { width: 22, height: 22, resizeMode: 'contain' },
+  stickerImage: { width: 40, height: 40, resizeMode: 'contain' },
 
   /* Bottom actions */
   menuAction: { width: 36, height: 36, borderRadius: 6, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ccc' },
