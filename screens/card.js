@@ -12,6 +12,7 @@ import {
 import Svg, { Path, Rect } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import Icon from '../components/Icon';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -35,6 +36,7 @@ function pointsToSvgPath(points = []) {
 export default function Card() {
   const [strokes, setStrokes] = useState([]); // {color, width, points}
   const [current, setCurrent] = useState(null);
+  const [actions, setActions] = useState([]); // stack of actions: {type: 'stroke' } or {type: 'sticker', id}
   const [color, setColor] = useState('#000000');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [strokeWidth, setStrokeWidth] = useState(6);
@@ -74,17 +76,28 @@ export default function Card() {
   function handleEnd() {
     if (!current) return;
     setStrokes(s => [...s, current]);
+    setActions(a => [...a, { type: 'stroke' }]);
     setCurrent(null);
   }
 
   function undo() {
-    setStrokes(s => s.slice(0, -1));
+    setActions(prev => {
+      if (!prev || prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      if (last.type === 'stroke') {
+        setStrokes(s => s.slice(0, -1));
+      } else if (last.type === 'sticker') {
+        setStickers(s => s.filter(st => st.id !== last.id));
+      }
+      return prev.slice(0, -1);
+    });
   }
 
   function clearAll() {
     setStrokes([]);
     setStickers([]);
     setBgColor('#ffffff');
+    setActions([]);
   }
 
   function addSticker(emoji) {
@@ -95,6 +108,7 @@ export default function Card() {
     const x = Math.round((cw - 48) / 2);
     const y = Math.round((ch - 48) / 2);
     setStickers(arr => [...arr, { id, emoji, x, y, rotation: 0 }]);
+    setActions(a => [...a, { type: 'sticker', id }]);
   }
 
   function updateSticker(id, x, y, rotation) {
@@ -303,7 +317,7 @@ export default function Card() {
                 onResponderGrant={handleStart}
                 onResponderMove={handleMove}
                 onResponderRelease={handleEnd}
-                pointerEvents="box-none" // gestures still pass to sticker detector first
+                pointerEvents={activeTool === 'pen' || activeTool === 'eraser' ? 'auto' : 'box-none'}
               />
             )}
           </View>
@@ -318,7 +332,7 @@ export default function Card() {
                 style={[styles.menuButton, activeTool === 'bucket' && styles.menuButtonActive]}
                 onPress={() => setActiveTool(activeTool === 'bucket' ? null : 'bucket')}
               >
-                <Text style={styles.menuText}>🪣</Text>
+                <Icon name="bucket" size={18} color="#fff" />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -326,11 +340,11 @@ export default function Card() {
                 style={[styles.menuButton, activeTool === 'pen' && styles.menuButtonActive]}
                 onPress={() => setActiveTool(activeTool === 'pen' ? null : 'pen')}
               >
-                <Text style={styles.menuText}>🖊️</Text>
+                <Icon name="pen" size={18} color="#fff" />
               </TouchableOpacity>
 
               <TouchableOpacity hitSlop={{ top: 8, left: 8, bottom: 8, right: 8 }} style={[styles.menuButton, styles.menuAction]} onPress={undo}>
-                <Text style={styles.menuText}>↶</Text>
+                <Icon name="undo" size={18} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -340,7 +354,7 @@ export default function Card() {
                 style={[styles.menuButton, activeTool === 'sticker' && styles.menuButtonActive]}
                 onPress={() => setActiveTool(activeTool === 'sticker' ? null : 'sticker')}
               >
-                <Text style={styles.menuText}>⭐</Text>
+                <Icon name="sticker" size={18} color="#fff" />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -348,11 +362,11 @@ export default function Card() {
                 style={[styles.menuButton, activeTool === 'eraser' && styles.menuButtonActive]}
                 onPress={() => setActiveTool(activeTool === 'eraser' ? null : 'eraser')}
               >
-                <Text style={styles.menuText}>🧽</Text>
+                <Icon name="eraser" size={18} color="#fff" />
               </TouchableOpacity>
 
-              <TouchableOpacity hitSlop={{ top: 8, left: 8, bottom: 8, right: 8 }} style={[styles.menuButton, styles.menuAction, { backgroundColor: '#fff' }]} onPress={clearAll}>
-                <Text style={[styles.menuText, { color: '#b00020' }]}>✖</Text>
+              <TouchableOpacity hitSlop={{ top: 8, left: 8, bottom: 8, right: 8 }} style={[styles.menuButton, styles.menuAction]} onPress={clearAll}>
+                <Icon name="clear" size={18} color="#ff9aa2" />
               </TouchableOpacity>
             </View>
           </View>
@@ -421,16 +435,16 @@ export default function Card() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, alignItems: 'stretch', justifyContent: 'flex-start' },
+  container: { flex: 1, alignItems: 'stretch', justifyContent: 'flex-start', backgroundColor: '#041021' },
   canvasWrapper: { flex: 1, backgroundColor: 'transparent', position: 'relative' },
 
   /* Menu layout */
-  menuBar: { height: 140, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee', padding: 8, flexDirection: 'row', alignItems: 'flex-start' },
-  mainMenu: { width: 80, flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', paddingVertical: 12, zIndex: 2 },
-  menuColumn: { width: 31, alignItems: 'center', justifyContent: 'flex-start', marginRight: 6 },
-  menuButton: { width: 36, height: 36, borderRadius: 6, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ccc', marginVertical: 0.5 },
-  menuButtonActive: { backgroundColor: '#f3f3f3', borderColor: '#999' },
-  menuText: { color: '#333', fontWeight: '700', fontSize: 16 },
+  menuBar: { height: 140, backgroundColor: '#041021', borderTopWidth: 1, borderColor: '#041021', padding: 8, flexDirection: 'row', alignItems: 'center' },
+  mainMenu: { width: 80, flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', paddingVertical: 0, zIndex: 2 },
+  menuColumn: { width: 31, alignItems: 'center', justifyContent: 'center', marginRight: 6, height: '100%' },
+  menuButton: { width: 36, height: 36, borderRadius: 6, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'hsla(0, 0%, 100%, 1.00)', marginVertical: 0.5 },
+  menuButtonActive: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)' },
+  menuText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
   toolPanel: { flex: 1, paddingLeft: 12, paddingRight: 8, zIndex: 1, alignItems: 'flex-start' },
   panelContent: { flex: 1 },
@@ -453,7 +467,7 @@ const styles = StyleSheet.create({
   stickerImage: { width: 40, height: 40, resizeMode: 'contain' },
 
   /* Bottom actions */
-  menuAction: { width: 36, height: 36, borderRadius: 6, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ccc' },
+  menuAction: { width: 36, height: 36, borderRadius: 6, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffffff' },
 
   /* leftover modal styles (unused but harmless) */
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },

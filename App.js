@@ -124,7 +124,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator
+          initialRouteName="Home"
+          screenOptions={{
+            headerStyle: { backgroundColor: '#041021' },
+            headerTintColor: '#ffffff',
+            headerTitleStyle: { color: '#ffffff' },
+          }}
+        >
           <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Tree" component={Tree} options={{ title: 'Decorate a Tree' }} />
           <Stack.Screen name="Snowman" component={Snowman} options={{ title: 'Build a Snowman' }} />
