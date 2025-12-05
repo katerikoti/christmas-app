@@ -83,9 +83,6 @@ export default function Snowman() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.title}>Build a Snowman</Text>
-        <Text style={styles.subtitle}>Drag, rotate, and pinch the pieces into place.</Text>
-
         <View style={styles.canvasWrapper} onLayout={onLayoutCanvas}>
           <View style={styles.canvasBackground} />
 
@@ -229,15 +226,13 @@ function SnowmanPart({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#041021' },
+  safe: { flex: 1, backgroundColor: '#153a5a' },
   container: { flex: 1, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 0 },
-  title: { fontSize: 24, fontWeight: '700', color: '#ffffff', textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#d0d6df', textAlign: 'center', marginTop: 4, marginBottom: 16 },
-  canvasWrapper: { flex: 1, borderRadius: 16, overflow: 'hidden', backgroundColor: '#0c1a33', alignItems: 'center', justifyContent: 'center' },
+  canvasWrapper: { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#245a85', alignItems: 'center', justifyContent: 'center' },
   canvasBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  menuBar: { marginTop: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
-  menuInner: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', marginBottom: 12 },
-  menuItem: { width: 56, height: 56, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 },
+  menuBar: { marginTop: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  menuInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  menuItem: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#2f6ea3', alignItems: 'center', justifyContent: 'center' },
   menuImage: { width: 42, height: 42, resizeMode: 'contain' },
   resetButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   resetText: { color: '#ffffff', fontWeight: '600', fontSize: 14 },
