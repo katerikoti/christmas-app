@@ -84,7 +84,7 @@ export default function Snowman() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.canvasWrapper} onLayout={onLayoutCanvas}>
-          <View style={styles.canvasBackground} />
+          <Image source={require('../assets/snowmanbackground.png')} style={styles.canvasBackground} resizeMode="cover" />
 
           {parts.map(part => (
             <SnowmanPart
@@ -229,10 +229,10 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#041021' },
   container: { flex: 1, backgroundColor: '#041021', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 0 },
   canvasWrapper: { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#2d74a8', alignItems: 'center', justifyContent: 'center' },
-  canvasBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  canvasBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   menuBar: { marginTop: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
   menuInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  menuItem: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#3a83c0', alignItems: 'center', justifyContent: 'center' },
+  menuItem: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#61a9c5', alignItems: 'center', justifyContent: 'center' },
   menuImage: { width: 42, height: 42, resizeMode: 'contain' },
   resetButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   resetText: { color: '#ffffff', fontWeight: '600', fontSize: 14 },
