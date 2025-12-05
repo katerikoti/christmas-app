@@ -56,7 +56,13 @@ export default function Snowman() {
     const ch = canvasOffset.current.height || SCREEN_HEIGHT;
     const x = Math.round((cw - 80) / 2);
     const y = Math.round((ch - 80) / 2);
-    setParts(arr => [...arr, { id, key: partKey, x, y, rotation: 0, scale: 1 }]);
+    let initialScale = 1;
+    if (partKey === 'snowball') initialScale = 1.2;
+    else if (partKey === 'carrot') initialScale = 0.85;
+    else if (partKey === 'coal') initialScale = 0.35;
+    else if (partKey === 'broom') initialScale = 1.25;
+    else if (partKey === 'scarf') initialScale = 1.2;
+    setParts(arr => [...arr, { id, key: partKey, x, y, rotation: 0, scale: initialScale }]);
   }
 
   function updatePart(id, x, y, rotation, scale) {
@@ -229,7 +235,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#041021' },
   container: { flex: 1, backgroundColor: '#041021', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 0 },
   canvasWrapper: { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#2d74a8', alignItems: 'center', justifyContent: 'center' },
-  canvasBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  canvasBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity: 0.75 },
   menuBar: { marginTop: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
   menuInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   menuItem: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#61a9c5', alignItems: 'center', justifyContent: 'center' },
