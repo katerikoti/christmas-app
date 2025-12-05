@@ -8,7 +8,6 @@ import {
   Dimensions,
   SafeAreaView,
   Image,
-  ScrollView,
 } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -412,65 +411,58 @@ export default function Card() {
 
           <View style={styles.toolPanel}>
             {activeTool === 'pen' && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.toolOptions}
-              >
-                {['#e63946','#2a9d8f','#00a8e8','#000000','#ffffff','#8b5a2b','#ffeb3b','#f72585','#f5f5dc','#d4af37'].map(c => (
-                  <TouchableOpacity
-                    key={c}
-                    style={[styles.colorSwatchSmall, { backgroundColor: c, borderWidth: color === c ? 2 : 1 }]}
-                    onPress={() => { setColor(c); }}
-                  />
-                ))}
-                <View style={styles.optionDivider} />
-                {[6,10,16].map(s => (
-                  <TouchableOpacity key={s} style={styles.sizeButtonSmall} onPress={() => { setStrokeWidth(s); }}>
-                    <View style={[styles.sizePreview, { width: s, height: s, borderRadius: s / 2, backgroundColor: color }]} />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <View style={styles.panelContentTop}>
+                <View style={styles.colorGridSmall}>
+                  {['#e63946','#2a9d8f','#00a8e8','#000000','#ffffff','#8b5a2b','#ffeb3b','#f72585','#f5f5dc','#d4af37'].map(c => (
+                    <TouchableOpacity
+                      key={c}
+                      style={[styles.colorSwatchSmall, { backgroundColor: c, borderWidth: color === c ? 2 : 1 }]}
+                      onPress={() => { setColor(c); }}
+                    />
+                  ))}
+                </View>
+                <View style={styles.sizeRowSmall}>
+                  {[6,10,16].map(s => (
+                    <TouchableOpacity key={s} style={styles.sizeButtonSmall} onPress={() => { setStrokeWidth(s); }}>
+                      <View style={{ width: s, height: s, borderRadius: s / 2, backgroundColor: color }} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             )}
 
             {activeTool === 'bucket' && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.toolOptions}
-              >
-                {['#e63946','#2a9d8f','#00a8e8','#000000','#ffffff','#8b5a2b','#ffeb3b','#f72585','#f5f5dc','#d4af37'].map(c => (
-                  <TouchableOpacity key={c} style={[styles.colorSwatchSmall, { backgroundColor: c }]} onPress={() => { setBgColor(c); }} />
-                ))}
-              </ScrollView>
+              <View style={styles.panelContentTop}>
+                <View style={styles.colorGridSmall}>
+                  {['#e63946','#2a9d8f','#00a8e8','#000000','#ffffff','#8b5a2b','#ffeb3b','#f72585','#f5f5dc','#d4af37'].map(c => (
+                    <TouchableOpacity key={c} style={[styles.colorSwatchSmall, { backgroundColor: c }]} onPress={() => { setBgColor(c); }} />
+                  ))}
+                </View>
+              </View>
             )}
 
             {activeTool === 'eraser' && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.toolOptions}
-              >
-                {[6,10,16].map(s => (
-                  <TouchableOpacity key={s} style={styles.sizeButtonSmall} onPress={() => { setStrokeWidth(s); setColor(bgColor); }}>
-                    <View style={[styles.sizePreview, { width: s, height: s, borderRadius: s / 2, backgroundColor: '#ccc' }]} />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <View style={styles.panelContentTop}>
+                <View style={styles.sizeRowSmall}>
+                  {[6,10,16].map(s => (
+                    <TouchableOpacity key={s} style={styles.sizeButtonSmall} onPress={() => { setStrokeWidth(s); setColor(bgColor); }}>
+                      <View style={{ width: s, height: s, borderRadius: s / 2, backgroundColor: '#ccc' }} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             )}
 
             {activeTool === 'sticker' && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.toolOptions}
-              >
-                {['ball','bell','chtree','flake','gingerman','mistletoe','present','hat','merrychristmas'].map(key => (
-                  <TouchableOpacity key={key} style={styles.pickerStickerSmall} onPress={() => { addSticker(key); }}>
-                    <Image source={STICKER_IMAGES[key]} style={styles.pickerImageSmall} />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <View style={styles.panelContentTop}>
+                <View style={styles.stickerGrid}>
+                  {['ball','bell','chtree','flake','gingerman','mistletoe','present','hat','merrychristmas'].map(key => (
+                    <TouchableOpacity key={key} style={styles.pickerStickerSmall} onPress={() => { addSticker(key); }}>
+                      <Image source={STICKER_IMAGES[key]} style={styles.pickerImageSmall} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             )}
           </View>
         </View>
@@ -480,8 +472,8 @@ export default function Card() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#153a5a' },
-  container: { flex: 1, backgroundColor: '#153a5a', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 0 },
+  safe: { flex: 1, backgroundColor: '#041021' },
+  container: { flex: 1, backgroundColor: '#041021', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 0 },
   canvasWrapper: { flex: 1, backgroundColor: '#245a85', position: 'relative', borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
 
   /* Menu layout */
@@ -492,18 +484,19 @@ const styles = StyleSheet.create({
   menuButtonActive: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)' },
   menuText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
-  toolPanel: { flex: 1, paddingLeft: 12, paddingRight: 8, justifyContent: 'center' },
-  toolOptions: { flexDirection: 'row', alignItems: 'center', paddingRight: 8 },
-  optionDivider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 12 },
-  colorSwatchSmall: { width: 32, height: 32, borderRadius: 8, marginRight: 8, borderWidth: 1, borderColor: '#ccc' },
-  sizeButtonSmall: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#fff' },
-  sizePreview: { borderRadius: 999, backgroundColor: '#fff' },
+  toolPanel: { flex: 1, paddingLeft: 12, paddingRight: 8, justifyContent: 'center', alignItems: 'flex-start' },
+  panelContentTop: { width: '100%', paddingTop: 0, alignItems: 'flex-start' },
+  colorGridSmall: { flexDirection: 'row', flexWrap: 'wrap', maxWidth: 170 },
+  colorSwatchSmall: { width: 28, height: 28, borderRadius: 6, margin: 2, borderWidth: 1, borderColor: '#ccc' },
+  sizeRowSmall: { flexDirection: 'row', marginTop: 8 },
+  sizeButtonSmall: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', marginRight: 6, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#fff' },
 
   /* Sticker */
   sticker: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   stickerEmoji: { fontSize: 36 },
-  pickerStickerSmall: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginRight: 8, borderRadius: 10, backgroundColor: 'transparent' },
-  pickerImageSmall: { width: 30, height: 30, resizeMode: 'contain' },
+  stickerGrid: { flexDirection: 'row', flexWrap: 'wrap', maxWidth: 180 },
+  pickerStickerSmall: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', margin: 2, borderRadius: 8, backgroundColor: 'transparent' },
+  pickerImageSmall: { width: 26, height: 26, resizeMode: 'contain' },
   stickerImage: { width: 40, height: 40, resizeMode: 'contain' },
 
   /* Bottom actions */
