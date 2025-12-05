@@ -25,6 +25,8 @@ const STICKER_IMAGES = {
   gingerman: require('../assets/gingerman.png'),
   mistletoe: require('../assets/mistletoe.png'),
   present: require('../assets/present.png'),
+  hat: require('../assets/hat.png'),
+  merrychristmas: require('../assets/merrychristmas.png'),
 };
 
 function pointsToSvgPath(points = []) {
@@ -41,10 +43,11 @@ export default function Card() {
   const [bgColor, setBgColor] = useState('#ffffff');
   const [strokeWidth, setStrokeWidth] = useState(6);
   const [activeTool, setActiveTool] = useState(null);
-  const [stickers, setStickers] = useState([]); // {id, emoji, x, y, rotation}
+  const [stickers, setStickers] = useState([]); // {id, emoji, x, y, rotation, scale}
   const canvasOffset = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const canvasLeft = useSharedValue(0);
   const canvasTop = useSharedValue(0);
+  const activeStickerId = useSharedValue(null);
   const idCounter = useRef(1);
   const prevToolRef = useRef(null);
 
@@ -107,18 +110,26 @@ export default function Card() {
     // center inside canvas
     const x = Math.round((cw - 48) / 2);
     const y = Math.round((ch - 48) / 2);
-    setStickers(arr => [...arr, { id, emoji, x, y, rotation: 0 }]);
+    setStickers(arr => [...arr, { id, emoji, x, y, rotation: 0, scale: 1 }]);
     setActions(a => [...a, { type: 'sticker', id }]);
   }
 
-  function updateSticker(id, x, y, rotation) {
+  function updateSticker(id, x, y, rotation, newScale) {
     // persist final transform and bring to top (render last)
     setStickers(arr => {
-      const updated = arr.map(s => (s.id === id ? { ...s, x, y, rotation: rotation ?? s.rotation } : s));
+      const updated = arr.map(s => (s.id === id ? { ...s, x, y, rotation: rotation ?? s.rotation, scale: newScale ?? s.scale } : s));
       const moved = updated.find(s => s.id === id);
       if (!moved) return updated;
       // bring moved sticker to end
       return [...updated.filter(s => s.id !== id), moved];
+    });
+  }
+
+  function bringStickerToFront(id) {
+    setStickers(arr => {
+      const found = arr.find(s => s.id === id);
+      if (!found) return arr;
+      return [...arr.filter(s => s.id !== id), found];
     });
   }
 
@@ -155,20 +166,24 @@ export default function Card() {
 
   /* Sticker component: separate, uses transforms only (no left/top from parent).
      Returns final coordinates through onUpdate(id,x,y,rotation). */
-  function Sticker({ emoji, id, initialX = 0, initialY = 0, initialRotation = 0, onUpdate, onGestureStart, onGestureEnd }) {
+  function Sticker({ emoji, id, initialX = 0, initialY = 0, initialRotation = 0, initialScale = 1, onUpdate, onGestureStart, onGestureEnd }) {
     const transX = useSharedValue(initialX);
     const transY = useSharedValue(initialY);
     const rot = useSharedValue(initialRotation || 0);
+    const scale = useSharedValue(initialScale ?? 1);
+    const startScale = useSharedValue(initialScale ?? 1);
 
     useEffect(() => {
       transX.value = initialX;
       transY.value = initialY;
       rot.value = initialRotation || 0;
-    }, [initialX, initialY, initialRotation]);
+      scale.value = initialScale ?? 1;
+      startScale.value = initialScale ?? 1;
+    }, [initialX, initialY, initialRotation, initialScale]);
 
     let startX = 0;
     let startY = 0;
-    let startRot = 0;
+    const startRot = useSharedValue(0);
     const interacting = useSharedValue(false);
     const grabX = useSharedValue(0);
     const grabY = useSharedValue(0);
@@ -198,7 +213,7 @@ export default function Card() {
         transY.value = touchAbsY - canvasTop.value - grabY.value;
       })
       .onEnd(() => {
-        if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value));
+        if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
         if (interacting.value) {
           interacting.value = false;
           if (onGestureEnd) runOnJS(onGestureEnd)();
@@ -207,7 +222,7 @@ export default function Card() {
 
     const rotation = Gesture.Rotation()
       .onStart(() => {
-        startRot = rot.value || 0;
+        startRot.value = rot.value || 0;
         if (!interacting.value) {
           interacting.value = true;
           if (onGestureStart) runOnJS(onGestureStart)();
@@ -216,23 +231,44 @@ export default function Card() {
       .onUpdate(e => {
         const r = e.rotation ?? 0;
         const deg = r * (180 / Math.PI);
-        rot.value = startRot + deg;
+        rot.value = startRot.value + deg;
       })
       .onEnd(() => {
-        if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value));
+        if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
         if (interacting.value) {
           interacting.value = false;
           if (onGestureEnd) runOnJS(onGestureEnd)();
         }
       });
 
-    const gesture = Gesture.Simultaneous(pan, rotation);
+    const pinch = Gesture.Pinch()
+      .onStart(() => {
+        startScale.value = scale.value;
+        if (!interacting.value) {
+          interacting.value = true;
+          if (onGestureStart) runOnJS(onGestureStart)();
+        }
+      })
+      .onUpdate(e => {
+        const s = e.scale ?? 1;
+        scale.value = startScale.value * s;
+      })
+      .onEnd(() => {
+        if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+        if (interacting.value) {
+          interacting.value = false;
+          if (onGestureEnd) runOnJS(onGestureEnd)();
+        }
+      });
+
+    const gesture = Gesture.Simultaneous(pan, rotation, pinch);
 
     const aStyle = useAnimatedStyle(() => ({
       transform: [
         { translateX: transX.value },
         { translateY: transY.value },
         { rotate: `${rot.value}deg` },
+        { scale: scale.value },
       ],
     }));
 
@@ -302,6 +338,8 @@ export default function Card() {
                 initialX={st.x}
                 initialY={st.y}
                 initialRotation={st.rotation}
+                initialScale={st.scale}
+                activeIdSV={activeStickerId}
                 onGestureStart={handleStickerGestureStart}
                 onGestureEnd={handleStickerGestureEnd}
                 onUpdate={updateSticker}
@@ -418,7 +456,7 @@ export default function Card() {
             {activeTool === 'sticker' && (
               <View style={styles.panelContentTop}>
                 <View style={styles.stickerGrid}>
-                  {['ball','bell','chtree','flake','gingerman','mistletoe','present'].map(key => (
+                  {['ball','bell','chtree','flake','gingerman','mistletoe','present','hat','merrychristmas'].map(key => (
                     <TouchableOpacity key={key} style={styles.pickerStickerSmall} onPress={() => { addSticker(key); }}>
                       <Image source={STICKER_IMAGES[key]} style={styles.pickerImageSmall} />
                     </TouchableOpacity>
