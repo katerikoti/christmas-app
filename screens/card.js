@@ -443,7 +443,7 @@ export default function Card() {
 
             {activeTool === 'eraser' && (
               <View style={styles.panelContentTop}>
-                <View style={styles.sizeRowSmall}>
+                <View style={[styles.sizeRowSmall, styles.sizeRowEraser]}>
                   {[6,10,16].map(s => (
                     <TouchableOpacity key={s} style={styles.sizeButtonSmall} onPress={() => { setStrokeWidth(s); setColor(bgColor); }}>
                       <View style={{ width: s, height: s, borderRadius: s / 2, backgroundColor: '#ccc' }} />
@@ -477,18 +477,19 @@ const styles = StyleSheet.create({
   canvasWrapper: { flex: 1, backgroundColor: '#245a85', position: 'relative', borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
 
   /* Menu layout */
-  menuBar: { marginTop: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center' },
-  mainMenu: { width: 96, flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', paddingVertical: 0 },
-  menuColumn: { width: 40, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  menuBar: { marginTop: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'flex-start' },
+  mainMenu: { width: 96, flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', paddingVertical: 0 },
+  menuColumn: { width: 40, alignItems: 'center', justifyContent: 'flex-start', marginRight: 8 },
   menuButton: { width: 36, height: 36, borderRadius: 6, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'hsla(0, 0%, 100%, 1.00)', marginVertical: 0.5 },
   menuButtonActive: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)' },
   menuText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
-  toolPanel: { flex: 1, paddingLeft: 12, paddingRight: 8, justifyContent: 'center', alignItems: 'flex-start' },
-  panelContentTop: { width: '100%', paddingTop: 0, alignItems: 'flex-start' },
+  toolPanel: { flex: 1, paddingLeft: 12, paddingRight: 8, justifyContent: 'flex-start', alignItems: 'flex-start' },
+  panelContentTop: { width: '100%', paddingTop: 2, alignItems: 'flex-start' },
   colorGridSmall: { flexDirection: 'row', flexWrap: 'wrap', maxWidth: 170 },
   colorSwatchSmall: { width: 28, height: 28, borderRadius: 6, margin: 2, borderWidth: 1, borderColor: '#ccc' },
   sizeRowSmall: { flexDirection: 'row', marginTop: 8 },
+  sizeRowEraser: { marginTop: 2 },
   sizeButtonSmall: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', marginRight: 6, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#fff' },
 
   /* Sticker */
