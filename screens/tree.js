@@ -38,12 +38,11 @@ const SET_OPTIONS = [
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SQUARE_SIZE = Math.min(170, SCREEN_WIDTH * 0.58);
 
-function OptionSquare({ title, options, selectedKey, onSelect }) {
+function OptionSquare({ options, selectedKey, onSelect }) {
   const optionThumbSize = SQUARE_SIZE - 60;
 
   return (
     <View style={[styles.square, { width: SQUARE_SIZE, height: SQUARE_SIZE }]}>
-      <Text style={styles.squareTitle}>{title}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -80,7 +79,6 @@ export default function Tree() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.heading}>🎄 Tree Decorating Time</Text>
         <Text style={styles.instructions}>
           Scroll each square to pick your favorite setting, tree, and decorations.
         </Text>
@@ -88,7 +86,6 @@ export default function Tree() {
         <View style={styles.squareStack}>
           <View style={styles.squareWrapper}>
             <OptionSquare
-              title="Room"
               options={ROOM_OPTIONS}
               selectedKey={selectedRoom}
               onSelect={setSelectedRoom}
@@ -96,7 +93,6 @@ export default function Tree() {
           </View>
           <View style={styles.squareWrapper}>
             <OptionSquare
-              title="Tree"
               options={TREE_OPTIONS}
               selectedKey={selectedTree}
               onSelect={setSelectedTree}
@@ -104,7 +100,6 @@ export default function Tree() {
           </View>
           <View style={styles.squareWrapper}>
             <OptionSquare
-              title="Decor"
               options={SET_OPTIONS}
               selectedKey={selectedSet}
               onSelect={setSelectedSet}
@@ -135,7 +130,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 28,
   },
-  heading: { fontSize: 24, fontWeight: '700', color: '#ffffff', marginBottom: 12 },
   instructions: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: 15,
@@ -159,12 +153,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
   },
-  squareTitle: {
-    color: '#ffffff',
-    fontWeight: '700',
-    marginBottom: 10,
-    fontSize: 15,
-  },
   optionStrip: {
     alignItems: 'center',
     paddingHorizontal: 4,
@@ -185,9 +173,8 @@ const styles = StyleSheet.create({
   optionThumbSpacing: { marginRight: 12 },
   optionImage: {
     width: '100%',
-    height: '78%',
+    height: '90%',
     borderRadius: 14,
-    marginBottom: 6,
   },
   decorateButton: {
     marginTop: 28,
