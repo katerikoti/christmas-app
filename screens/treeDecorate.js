@@ -82,6 +82,7 @@ export default function TreeDecorate({ route }) {
   const treeGrabY = useSharedValue(0);
   const treeWidthSV = useSharedValue(0);
   const treeHeightSV = useSharedValue(0);
+  const treeBoundsRef = useRef({ minX: 0, maxX: 0, minY: 0, maxY: 0 });
 
   useEffect(() => {
     setDecorations([]);
@@ -107,6 +108,16 @@ export default function TreeDecorate({ route }) {
     treeHeightSV.value = computedTreeHeight;
     setTreeDimensions({ width: computedTreeWidth, height: computedTreeHeight });
 
+    const horizontalAllowance = computedTreeWidth * 0.22;
+    const verticalAllowanceTop = computedTreeHeight * 0.4;
+    const verticalAllowanceBottom = Math.max(32, height * 0.14);
+    treeBoundsRef.current = {
+      minX: -horizontalAllowance,
+      maxX: Math.max(0, width - computedTreeWidth) + horizontalAllowance,
+      minY: -verticalAllowanceTop,
+      maxY: Math.max(0, height - computedTreeHeight) + verticalAllowanceBottom,
+    };
+
     if (!initialPlacementDone.current) {
       const startX = (width - computedTreeWidth) / 2;
       const groundPadding = Math.max(16, height * 0.08);
@@ -117,10 +128,9 @@ export default function TreeDecorate({ route }) {
       initialPlacementDone.current = true;
     } else {
       // keep tree within bounds if layout changes (e.g., rotation)
-      const maxX = Math.max(0, width - computedTreeWidth);
-      const maxY = Math.max(0, height - computedTreeHeight);
-      const clampedX = Math.min(Math.max(treeTransX.value, 0), maxX);
-      const clampedY = Math.min(Math.max(treeTransY.value, 0), maxY);
+      const { minX, maxX, minY, maxY } = treeBoundsRef.current;
+      const clampedX = Math.min(Math.max(treeTransX.value, minX), maxX);
+      const clampedY = Math.min(Math.max(treeTransY.value, minY), maxY);
       treeTransX.value = clampedX;
       treeTransY.value = clampedY;
       updateTreePosition(Math.round(clampedX), Math.round(clampedY));
@@ -160,7 +170,12 @@ export default function TreeDecorate({ route }) {
   }
 
   function lockTreePlacement() {
-    treePositionRef.current = { x: Math.round(treeTransX.value), y: Math.round(treeTransY.value) };
+    const { minX, maxX, minY, maxY } = treeBoundsRef.current;
+    const clampedX = Math.min(Math.max(treeTransX.value, minX), maxX);
+    const clampedY = Math.min(Math.max(treeTransY.value, minY), maxY);
+    treeTransX.value = clampedX;
+    treeTransY.value = clampedY;
+    treePositionRef.current = { x: Math.round(clampedX), y: Math.round(clampedY) };
     setIsTreeLocked(true);
   }
 
@@ -185,11 +200,10 @@ export default function TreeDecorate({ route }) {
       const proposedX = touchAbsX - canvasLeft.value - treeGrabX.value;
       const proposedY = touchAbsY - canvasTop.value - treeGrabY.value;
 
-      const maxX = Math.max(0, canvasWidthSV.value - treeWidthSV.value);
-      const maxY = Math.max(0, canvasHeightSV.value - treeHeightSV.value);
+      const { minX, maxX, minY, maxY } = treeBoundsRef.current;
 
-      treeTransX.value = Math.min(Math.max(proposedX, 0), maxX);
-      treeTransY.value = Math.min(Math.max(proposedY, 0), maxY);
+      treeTransX.value = Math.min(Math.max(proposedX, minX), maxX);
+      treeTransY.value = Math.min(Math.max(proposedY, minY), maxY);
     })
     .onEnd(() => {
       if (isTreeLocked) return;
