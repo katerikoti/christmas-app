@@ -62,7 +62,7 @@ function OptionColumn({ options, selectedKey, onSelect }) {
   );
 }
 
-export default function Tree() {
+export default function Tree({ navigation }) {
   const [selectedRoom, setSelectedRoom] = useState(ROOM_OPTIONS[0].key);
   const [selectedTree, setSelectedTree] = useState(TREE_OPTIONS[0].key);
   const [selectedSet, setSelectedSet] = useState(SET_OPTIONS[0].key);
@@ -94,7 +94,17 @@ export default function Tree() {
           />
         </View>
 
-        <TouchableOpacity style={styles.decorateButton} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.decorateButton}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation?.navigate('TreeDecorate', {
+              room: selectedRoom,
+              tree: selectedTree,
+              set: selectedSet,
+            })
+          }
+        >
           <Text style={styles.decorateLabel}>Let&apos;s Decorate</Text>
         </TouchableOpacity>
       </View>

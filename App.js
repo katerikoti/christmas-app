@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import Tree from './screens/tree';
+import TreeDecorate from './screens/treeDecorate';
 import Snowman from './screens/snowman';
 import Snowflake from './screens/snowflake';
 import Card from './screens/card';
@@ -134,6 +135,11 @@ export default function App() {
         >
           <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Tree" component={Tree} options={{ title: 'Decorate a Tree' }} />
+          <Stack.Screen
+            name="TreeDecorate"
+            component={TreeDecorate}
+            options={{ title: 'Tree Canvas', headerTitleAlign: 'center' }}
+          />
           <Stack.Screen name="Snowman" component={Snowman} options={{ title: 'Build a Snowman' }} />
           <Stack.Screen name="Snowflake" component={Snowflake} options={{ title: 'Make a Snowflake' }} />
           <Stack.Screen name="Card" component={Card} options={{ title: 'Make a Card' }} />
