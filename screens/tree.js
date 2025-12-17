@@ -1,73 +1,64 @@
 import React, { useState } from 'react';
 import {
-  Dimensions,
-  Image,
   SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  ScrollView,
+  TouchableOpacity,
+  Image,
 } from 'react-native';
 
 const ROOM_OPTIONS = [
-  {
-    key: 'livingroom1',
-    label: 'Living Room 1',
-    source: require('../assets/livingroom1.png'),
-  },
-  {
-    key: 'livingroom2',
-    label: 'Living Room 2',
-    source: require('../assets/livingroom2.png'),
-  },
+  { key: 'livingroom1', source: require('../assets/livingroom1.png') },
+  { key: 'livingroom2', source: require('../assets/livingroom2.png') },
+  { key: 'livingroom3', source: require('../assets/livingroom3.png') },
 ];
 
 const TREE_OPTIONS = [
-  { key: 'tree1', label: 'Tree 1', source: require('../assets/tree1.png') },
-  { key: 'tree2', label: 'Tree 2', source: require('../assets/tree2.png') },
-  { key: 'tree3', label: 'Tree 3', source: require('../assets/tree3.png') },
+  { key: 'tree1', source: require('../assets/tree1.png') },
+  { key: 'tree2', source: require('../assets/tree2.png') },
+  { key: 'tree3', source: require('../assets/tree3.png') },
 ];
 
 const SET_OPTIONS = [
-  { key: 'set1', label: 'Decor Set 1', source: require('../assets/set1.png') },
-  { key: 'set2', label: 'Decor Set 2', source: require('../assets/set2.png') },
-  { key: 'set3', label: 'Decor Set 3', source: require('../assets/set3.png') },
+  { key: 'set1', source: require('../assets/set1.png') },
+  { key: 'set2', source: require('../assets/set2.png') },
+  { key: 'set3', source: require('../assets/set3.png') },
 ];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SQUARE_SIZE = Math.min(170, SCREEN_WIDTH * 0.58);
+const COLUMN_WIDTH = Math.min(150, SCREEN_WIDTH * 0.28);
 
-function OptionSquare({ options, selectedKey, onSelect }) {
-  const optionThumbSize = SQUARE_SIZE - 60;
+function OptionColumn({ options, selectedKey, onSelect }) {
+  const optionThumbSize = COLUMN_WIDTH - 26;
 
   return (
-    <View style={[styles.square, { width: SQUARE_SIZE, height: SQUARE_SIZE }]}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.optionStrip}
-      >
-        {options.map((option, index) => (
-          <TouchableOpacity
-            key={option.key}
-            activeOpacity={0.85}
-            onPress={() => onSelect(option.key)}
-            style={[
-              styles.optionThumb,
-              {
-                width: optionThumbSize,
-                height: optionThumbSize,
-              },
-              selectedKey === option.key && styles.optionThumbSelected,
-              index < options.length - 1 && styles.optionThumbSpacing,
-            ]}
-          >
-            <Image source={option.source} style={styles.optionImage} resizeMode="cover" />
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.optionStrip}
+      style={[styles.optionColumn, { width: COLUMN_WIDTH }]}
+    >
+      {options.map((option, index) => (
+        <TouchableOpacity
+          key={option.key}
+          activeOpacity={0.85}
+          onPress={() => onSelect(option.key)}
+          style={[
+            styles.optionThumb,
+            {
+              width: optionThumbSize,
+              height: optionThumbSize,
+            },
+            selectedKey === option.key && styles.optionThumbSelected,
+            index < options.length - 1 && styles.optionThumbSpacingVertical,
+          ]}
+        >
+          <Image source={option.source} style={styles.optionImage} resizeMode="cover" />
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -80,43 +71,32 @@ export default function Tree() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Text style={styles.instructions}>
-          Scroll each square to pick your favorite setting, tree, and decorations.
+          Pick a room, the perfect tree, and your favorite decorations.
         </Text>
 
-        <View style={styles.squareStack}>
-          <View style={styles.squareWrapper}>
-            <OptionSquare
-              options={ROOM_OPTIONS}
-              selectedKey={selectedRoom}
-              onSelect={setSelectedRoom}
-            />
-          </View>
-          <View style={styles.squareWrapper}>
-            <OptionSquare
-              options={TREE_OPTIONS}
-              selectedKey={selectedTree}
-              onSelect={setSelectedTree}
-            />
-          </View>
-          <View style={styles.squareWrapper}>
-            <OptionSquare
-              options={SET_OPTIONS}
-              selectedKey={selectedSet}
-              onSelect={setSelectedSet}
-            />
-          </View>
+        <View style={styles.optionRow}>
+          <OptionColumn
+            options={ROOM_OPTIONS}
+            selectedKey={selectedRoom}
+            onSelect={setSelectedRoom}
+          />
+          <View style={styles.separator} />
+          <OptionColumn
+            options={TREE_OPTIONS}
+            selectedKey={selectedTree}
+            onSelect={setSelectedTree}
+          />
+          <View style={styles.separator} />
+          <OptionColumn
+            options={SET_OPTIONS}
+            selectedKey={selectedSet}
+            onSelect={setSelectedSet}
+          />
         </View>
 
         <TouchableOpacity style={styles.decorateButton} activeOpacity={0.85}>
           <Text style={styles.decorateLabel}>Let&apos;s Decorate</Text>
         </TouchableOpacity>
-
-        <View style={styles.selectionSummary}>
-          <Text style={styles.summaryLabel}>Current picks</Text>
-          <Text style={styles.summaryText}>Room: {selectedRoom}</Text>
-          <Text style={styles.summaryText}>Tree: {selectedTree}</Text>
-          <Text style={styles.summaryText}>Decor: {selectedSet}</Text>
-        </View>
       </View>
     </SafeAreaView>
   );
@@ -138,23 +118,26 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     marginBottom: 22,
   },
-  squareStack: {
+  optionRow: {
     width: '100%',
-    alignItems: 'center',
-  },
-  squareWrapper: { marginBottom: 18 },
-  square: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 22,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'stretch',
+    marginBottom: 18,
+  },
+  optionColumn: {
+    maxHeight: 360,
+    flexGrow: 0,
+  },
+  separator: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    marginHorizontal: 14,
+    borderRadius: 1,
   },
   optionStrip: {
     alignItems: 'center',
+    paddingVertical: 6,
     paddingHorizontal: 4,
   },
   optionThumb: {
@@ -170,11 +153,11 @@ const styles = StyleSheet.create({
     borderColor: '#2d9dff',
     backgroundColor: 'rgba(45,157,255,0.15)',
   },
-  optionThumbSpacing: { marginRight: 12 },
+  optionThumbSpacingVertical: { marginBottom: 14 },
   optionImage: {
     width: '100%',
-    height: '90%',
-    borderRadius: 14,
+    height: '100%',
+    borderRadius: 12,
   },
   decorateButton: {
     marginTop: 28,
@@ -186,15 +169,4 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
   },
   decorateLabel: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
-  selectionSummary: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 13,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  summaryText: { color: '#ffffff', fontSize: 14, marginTop: 4 },
 });
