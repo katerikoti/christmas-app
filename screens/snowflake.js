@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated } from 'react-native';
-import Svg, { Path, G, Polygon, Defs, ClipPath, Circle, Line } from 'react-native-svg';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import React, { useState, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, PanResponder } from 'react-native';
+import Svg, { Path, G, Defs, ClipPath, Circle, Line } from 'react-native-svg';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const SIZE = Math.min(width * 0.85, 350);
 const CENTER = SIZE / 2;
 
@@ -11,22 +10,6 @@ const CENTER = SIZE / 2;
 // This represents paper folded in half 3 times
 const WEDGE_ANGLE = 60; // degrees
 const WEDGE_RADIUS = SIZE * 0.45;
-
-// Calculate wedge points (cone shape - like a pizza slice pointing up)
-const getWedgePoints = () => {
-  const startAngle = -90 - WEDGE_ANGLE / 2; // Start from top-left
-  const endAngle = -90 + WEDGE_ANGLE / 2;   // End at top-right
-  
-  const startRad = (startAngle * Math.PI) / 180;
-  const endRad = (endAngle * Math.PI) / 180;
-  
-  const x1 = CENTER + WEDGE_RADIUS * Math.cos(startRad);
-  const y1 = CENTER + WEDGE_RADIUS * Math.sin(startRad);
-  const x2 = CENTER + WEDGE_RADIUS * Math.cos(endRad);
-  const y2 = CENTER + WEDGE_RADIUS * Math.sin(endRad);
-  
-  return `${CENTER},${CENTER} ${x1},${y1} ${x2},${y2}`;
-};
 
 // Create arc path for the wedge (curved outer edge)
 const getWedgePath = () => {
@@ -48,32 +31,34 @@ export default function Snowflake() {
   const [mode, setMode] = useState('folded'); // folded | cutting | unfolding | done
   const [cutShapes, setCutShapes] = useState([]); // Array of closed shapes (cut-out pieces)
   const [currentPath, setCurrentPath] = useState([]);
-  const [isDrawing, setIsDrawing] = useState(false);
   const unfoldAnim = useRef(new Animated.Value(0)).current;
+  
+  // Use ref to track path during gesture
+  const pathRef = useRef([]);
 
-  // Pan gesture for drawing cuts
-  const pan = Gesture.Pan()
-    .onStart(e => {
-      if (mode !== 'cutting') return;
-      setIsDrawing(true);
-      setCurrentPath([{ x: e.x, y: e.y }]);
-    })
-    .onUpdate(e => {
-      if (mode !== 'cutting' || !isDrawing) return;
-      setCurrentPath(prev => [...prev, { x: e.x, y: e.y }]);
-    })
-    .onEnd(() => {
-      if (mode !== 'cutting') return;
-      setIsDrawing(false);
-      
-      // If the path has enough points, create a cut shape
-      if (currentPath.length > 3) {
-        // Close the shape by connecting back to start
-        const closedShape = [...currentPath];
+  // PanResponder for drawing cuts
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => mode === 'cutting',
+    onMoveShouldSetPanResponder: () => mode === 'cutting',
+    onPanResponderGrant: (evt) => {
+      const { locationX, locationY } = evt.nativeEvent;
+      pathRef.current = [{ x: locationX, y: locationY }];
+      setCurrentPath([{ x: locationX, y: locationY }]);
+    },
+    onPanResponderMove: (evt) => {
+      const { locationX, locationY } = evt.nativeEvent;
+      pathRef.current = [...pathRef.current, { x: locationX, y: locationY }];
+      setCurrentPath([...pathRef.current]);
+    },
+    onPanResponderRelease: () => {
+      if (pathRef.current.length > 3) {
+        const closedShape = [...pathRef.current];
         setCutShapes(prev => [...prev, closedShape]);
       }
+      pathRef.current = [];
       setCurrentPath([]);
-    });
+    },
+  }), [mode]);
 
   // Convert points array to SVG path string (closed shape)
   const pointsToClosedPath = (points) => {
@@ -177,58 +162,56 @@ export default function Snowflake() {
         {mode === 'done' && 'Your snowflake is ready!'}
       </Text>
 
-      <View style={styles.canvas}>
-        <GestureDetector gesture={pan}>
-          <View style={styles.svgContainer}>
-            <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-              <Defs>
-                {/* Clip path for the wedge shape */}
-                <ClipPath id="wedgeClip">
-                  <Path d={wedgePath} />
-                </ClipPath>
-                {/* Clip path for circular snowflake */}
-                <ClipPath id="circleClip">
-                  <Circle cx={CENTER} cy={CENTER} r={WEDGE_RADIUS} />
-                </ClipPath>
-              </Defs>
+      <View style={styles.canvas} {...panResponder.panHandlers}>
+        <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+          <Defs>
+            {/* Clip path for the wedge shape */}
+            <ClipPath id="wedgeClip">
+              <Path d={wedgePath} />
+            </ClipPath>
+            {/* Clip path for circular snowflake */}
+            <ClipPath id="circleClip">
+              <Circle cx={CENTER} cy={CENTER} r={WEDGE_RADIUS} />
+            </ClipPath>
+          </Defs>
 
-              {/* Background circle hint */}
-              {mode !== 'done' && mode !== 'unfolding' && (
-                <Circle 
-                  cx={CENTER} 
-                  cy={CENTER} 
-                  r={WEDGE_RADIUS + 2} 
-                  fill="none" 
-                  stroke="rgba(255,255,255,0.1)" 
-                  strokeWidth={1}
-                  strokeDasharray="5,5"
-                />
-              )}
+          {/* Background circle hint */}
+          {mode !== 'done' && mode !== 'unfolding' && (
+            <Circle 
+              cx={CENTER} 
+              cy={CENTER} 
+              r={WEDGE_RADIUS + 2} 
+              fill="none" 
+              stroke="rgba(255,255,255,0.1)" 
+              strokeWidth={1}
+              strokeDasharray="5,5"
+            />
+          )}
 
-              {/* FOLDED MODE: Show the wedge (folded paper) */}
-              {(mode === 'folded' || mode === 'cutting') && (
-                <G>
-                  {/* Paper wedge */}
-                  <Path d={wedgePath} fill="#f5f5f5" />
-                  
-                  {/* Fold lines (decorative) */}
-                  <Line 
-                    x1={CENTER} y1={CENTER} 
-                    x2={CENTER + WEDGE_RADIUS * Math.cos((-90 - WEDGE_ANGLE/2) * Math.PI / 180)} 
-                    y2={CENTER + WEDGE_RADIUS * Math.sin((-90 - WEDGE_ANGLE/2) * Math.PI / 180)}
-                    stroke="rgba(0,0,0,0.1)"
-                    strokeWidth={1}
-                  />
-                  <Line 
-                    x1={CENTER} y1={CENTER} 
-                    x2={CENTER + WEDGE_RADIUS * Math.cos((-90 + WEDGE_ANGLE/2) * Math.PI / 180)} 
-                    y2={CENTER + WEDGE_RADIUS * Math.sin((-90 + WEDGE_ANGLE/2) * Math.PI / 180)}
-                    stroke="rgba(0,0,0,0.1)"
-                    strokeWidth={1}
-                  />
-                  <Line 
-                    x1={CENTER} y1={CENTER} 
-                    x2={CENTER} 
+          {/* FOLDED MODE: Show the wedge (folded paper) */}
+          {(mode === 'folded' || mode === 'cutting') && (
+            <G>
+              {/* Paper wedge */}
+              <Path d={wedgePath} fill="#f5f5f5" />
+              
+              {/* Fold lines (decorative) */}
+              <Line 
+                x1={CENTER} y1={CENTER} 
+                x2={CENTER + WEDGE_RADIUS * Math.cos((-90 - WEDGE_ANGLE/2) * Math.PI / 180)} 
+                y2={CENTER + WEDGE_RADIUS * Math.sin((-90 - WEDGE_ANGLE/2) * Math.PI / 180)}
+                stroke="rgba(0,0,0,0.1)"
+                strokeWidth={1}
+              />
+              <Line 
+                x1={CENTER} y1={CENTER} 
+                x2={CENTER + WEDGE_RADIUS * Math.cos((-90 + WEDGE_ANGLE/2) * Math.PI / 180)} 
+                y2={CENTER + WEDGE_RADIUS * Math.sin((-90 + WEDGE_ANGLE/2) * Math.PI / 180)}
+                stroke="rgba(0,0,0,0.1)"
+                strokeWidth={1}
+              />
+              <Line 
+                x1={CENTER} y1={CENTER} 
+                x2={CENTER} 
                     y2={CENTER - WEDGE_RADIUS}
                     stroke="rgba(0,0,0,0.15)"
                     strokeWidth={1}
@@ -245,39 +228,37 @@ export default function Snowflake() {
                     />
                   ))}
 
-                  {/* Current drawing path */}
-                  {currentPath.length > 1 && (
-                    <Path
-                      d={pointsToClosedPath(currentPath)}
-                      fill="rgba(4, 16, 33, 0.5)"
-                      stroke="#ff6b6b"
-                      strokeWidth={2}
-                      strokeDasharray="4,2"
-                      clipPath="url(#wedgeClip)"
-                    />
-                  )}
-                </G>
+              {/* Current drawing path */}
+              {currentPath.length > 1 && (
+                <Path
+                  d={pointsToClosedPath(currentPath)}
+                  fill="rgba(4, 16, 33, 0.5)"
+                  stroke="#ff6b6b"
+                  strokeWidth={2}
+                  strokeDasharray="4,2"
+                  clipPath="url(#wedgeClip)"
+                />
               )}
+            </G>
+          )}
 
-              {/* DONE MODE: Show the unfolded snowflake */}
-              {(mode === 'unfolding' || mode === 'done') && (
-                <G clipPath="url(#circleClip)">
-                  {/* Base circle (the paper) */}
-                  <Circle cx={CENTER} cy={CENTER} r={WEDGE_RADIUS} fill="#f5f5f5" />
-                  
-                  {/* All the cut-out shapes creating the snowflake pattern */}
-                  {snowflakeShapes.map((shape) => (
-                    <Path
-                      key={shape.key}
-                      d={shape.path}
-                      fill="#041021"
-                    />
-                  ))}
-                </G>
-              )}
-            </Svg>
-          </View>
-        </GestureDetector>
+          {/* DONE MODE: Show the unfolded snowflake */}
+          {(mode === 'unfolding' || mode === 'done') && (
+            <G clipPath="url(#circleClip)">
+              {/* Base circle (the paper) */}
+              <Circle cx={CENTER} cy={CENTER} r={WEDGE_RADIUS} fill="#f5f5f5" />
+              
+              {/* All the cut-out shapes creating the snowflake pattern */}
+              {snowflakeShapes.map((shape) => (
+                <Path
+                  key={shape.key}
+                  d={shape.path}
+                  fill="#041021"
+                />
+              ))}
+            </G>
+          )}
+        </Svg>
       </View>
 
       {/* Action Buttons */}
