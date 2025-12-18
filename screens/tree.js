@@ -171,12 +171,11 @@ const styles = StyleSheet.create({
   },
   decorateButton: {
     marginTop: 28,
-    backgroundColor: 'rgba(45,157,255,0.35)',
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 26,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  decorateLabel: { color: '#ffffff', fontWeight: '700', fontSize: 15, letterSpacing: 0.4 },
+  decorateLabel: { color: '#ffffff', fontWeight: '600', fontSize: 14 },
 });
