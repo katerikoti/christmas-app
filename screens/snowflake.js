@@ -28,7 +28,7 @@ const getWedgePath = () => {
 };
 
 export default function Snowflake() {
-  const [mode, setMode] = useState('folded'); // folded | cutting | unfolding | done
+  const [mode, setMode] = useState('cutting'); // cutting | unfolding | done
   const [cutShapes, setCutShapes] = useState([]); // Array of closed shapes (cut-out pieces)
   const [currentPath, setCurrentPath] = useState([]);
   const unfoldAnim = useRef(new Animated.Value(0)).current;
@@ -139,7 +139,7 @@ export default function Snowflake() {
   const handleReset = () => {
     setCutShapes([]);
     setCurrentPath([]);
-    setMode('folded');
+    setMode('cutting');
     unfoldAnim.setValue(0);
   };
 
@@ -153,10 +153,7 @@ export default function Snowflake() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>❄️ Paper Snowflake</Text>
-      
       <Text style={styles.instructions}>
-        {mode === 'folded' && 'Tap "Start Cutting" to begin!'}
         {mode === 'cutting' && 'Draw shapes to cut out pieces'}
         {mode === 'unfolding' && 'Unfolding...'}
         {mode === 'done' && 'Your snowflake is ready!'}
@@ -232,10 +229,9 @@ export default function Snowflake() {
               {currentPath.length > 1 && (
                 <Path
                   d={pointsToClosedPath(currentPath)}
-                  fill="rgba(4, 16, 33, 0.5)"
-                  stroke="#ff6b6b"
+                  fill="rgba(4, 16, 33, 0.7)"
+                  stroke="#041021"
                   strokeWidth={2}
-                  strokeDasharray="4,2"
                   clipPath="url(#wedgeClip)"
                 />
               )}
@@ -263,28 +259,15 @@ export default function Snowflake() {
 
       {/* Action Buttons */}
       <View style={styles.buttons}>
-        {mode === 'folded' && (
-          <TouchableOpacity style={styles.primaryButton} onPress={() => setMode('cutting')}>
-            <Text style={styles.primaryButtonText}>✂️ Start Cutting</Text>
-          </TouchableOpacity>
-        )}
-
         {mode === 'cutting' && (
-          <View style={styles.buttonRow}>
-            {cutShapes.length > 0 && (
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleUndo}>
-                <Text style={styles.secondaryButtonText}>↩️ Undo</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.primaryButton} onPress={handleUnfold}>
-              <Text style={styles.primaryButtonText}>❄️ Unfold</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleUnfold}>
+            <Text style={styles.primaryButtonText}>Unfold</Text>
+          </TouchableOpacity>
         )}
 
         {mode === 'done' && (
           <TouchableOpacity style={styles.primaryButton} onPress={handleReset}>
-            <Text style={styles.primaryButtonText}>🔄 Try Again</Text>
+            <Text style={styles.primaryButtonText}>Try Again</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -341,20 +324,18 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   primaryButton: {
-    backgroundColor: '#4a90d9',
-    paddingVertical: 14,
+    backgroundColor: 'rgba(45,157,255,0.35)',
+    paddingVertical: 12,
     paddingHorizontal: 28,
-    borderRadius: 25,
-    shadowColor: '#4a90d9',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   secondaryButton: {
     backgroundColor: 'transparent',

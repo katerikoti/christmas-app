@@ -270,7 +270,7 @@ export default function TreeDecorate({ route }) {
 						</>
 					) : (
 						<TouchableOpacity style={styles.lockButton} onPress={lockTreePlacement} activeOpacity={0.85}>
-							<Text style={styles.lockText}>Lock tree & start decorating</Text>
+							<Text style={styles.lockText}>Place tree & start decorating</Text>
 						</TouchableOpacity>
 					)}
 				</View>

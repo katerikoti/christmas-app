@@ -105,7 +105,7 @@ export default function Tree({ navigation }) {
             })
           }
         >
-          <Text style={styles.decorateLabel}>Let&apos;s Decorate</Text>
+          <Text style={styles.decorateLabel}>Ready</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -171,12 +171,12 @@ const styles = StyleSheet.create({
   },
   decorateButton: {
     marginTop: 28,
-    backgroundColor: '#2d9dff',
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-    borderRadius: 28,
+    backgroundColor: 'rgba(45,157,255,0.35)',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 26,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
   },
-  decorateLabel: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
+  decorateLabel: { color: '#ffffff', fontWeight: '700', fontSize: 15, letterSpacing: 0.4 },
 });
