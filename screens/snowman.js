@@ -7,6 +7,7 @@ import {
   Dimensions,
   SafeAreaView,
   Image,
+  ScrollView,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
@@ -101,13 +102,17 @@ export default function Snowman() {
         </View>
 
         <View style={styles.menuBar}>
-          <View style={styles.menuInner}>
-            {MENU_ORDER.map(key => (
-              <TouchableOpacity key={key} style={styles.menuItem} onPress={() => addPart(key)}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.menuInner}
+          >
+            {MENU_ORDER.map((key, index) => (
+              <TouchableOpacity key={key} style={[styles.menuItem, index === MENU_ORDER.length - 1 && styles.menuItemLast]} onPress={() => addPart(key)}>
                 <Image source={PART_IMAGES[key]} style={styles.menuImage} />
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
           <TouchableOpacity style={styles.resetButton} onPress={clearSnowman}>
             <Text style={styles.resetText}>Reset</Text>
           </TouchableOpacity>
@@ -256,8 +261,9 @@ const styles = StyleSheet.create({
   canvasWrapper: { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#2d74a8', alignItems: 'center', justifyContent: 'center' },
   canvasBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity: 0.75 },
   menuBar: { marginTop: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  menuInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  menuItem: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#61a9c5', alignItems: 'center', justifyContent: 'center' },
+  menuInner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, marginBottom: 12 },
+  menuItem: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#61a9c5', alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  menuItemLast: { marginRight: 0 },
   menuImage: { width: 42, height: 42, resizeMode: 'contain' },
   resetButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   resetText: { color: '#ffffff', fontWeight: '600', fontSize: 14 },
