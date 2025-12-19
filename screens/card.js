@@ -165,6 +165,7 @@ export default function Card() {
   }
 
   const STICKER_SIZE = 48; // matches styles.sticker width/height
+  const MIN_TOUCH_SIZE = 70; // minimum touch area for reliable gestures
 
   /* Sticker component: separate, uses transforms only (no left/top from parent).
      Returns final coordinates through onUpdate(id,x,y,rotation). */
@@ -269,21 +270,22 @@ export default function Card() {
     const gesture = Gesture.Simultaneous(pan, rotation, pinch);
 
     const aStyle = useAnimatedStyle(() => {
-      // Scale the container size so touch area matches visual size
+      // Use minimum touch size for small items, but scale up for larger ones
       const scaledSize = STICKER_SIZE * scale.value;
+      const touchSize = Math.max(scaledSize, MIN_TOUCH_SIZE);
       return {
-        width: scaledSize,
-        height: scaledSize,
+        width: touchSize,
+        height: touchSize,
         transform: [
-          // Position by center, accounting for scaled size
-          { translateX: centerX.value - scaledSize / 2 },
-          { translateY: centerY.value - scaledSize / 2 },
+          // Position by center, accounting for touch area size
+          { translateX: centerX.value - touchSize / 2 },
+          { translateY: centerY.value - touchSize / 2 },
           { rotate: `${rot.value}deg` },
         ],
       };
     });
 
-    // Scale the image to match container
+    // Scale the image based on actual scale value (visual size)
     const imageStyle = useAnimatedStyle(() => {
       const scaledImageSize = 40 * scale.value;
       return {

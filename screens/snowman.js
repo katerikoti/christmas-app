@@ -123,6 +123,7 @@ export default function Snowman() {
 }
 
 const PART_SIZE = 100; // matches styles.part width/height
+const MIN_TOUCH_SIZE = 80; // minimum touch area for small items
 
 function SnowmanPart({
   id,
@@ -138,13 +139,11 @@ function SnowmanPart({
   onUpdate,
 }) {
   // Store center position for proper transform origin behavior
-  // Use the base size for center calculation (scale is applied via transform)
   const centerX = useSharedValue(initialX + PART_SIZE / 2);
   const centerY = useSharedValue(initialY + PART_SIZE / 2);
   const rot = useSharedValue(initialRotation || 0);
   const scale = useSharedValue(initialScale ?? 1);
   const startScale = useSharedValue(initialScale ?? 1);
-  const baseScale = useSharedValue(initialScale ?? 1); // remember initial scale for reference
   const startRot = useSharedValue(0);
   const grabX = useSharedValue(0);
   const grabY = useSharedValue(0);
@@ -155,7 +154,6 @@ function SnowmanPart({
     rot.value = initialRotation || 0;
     scale.value = initialScale ?? 1;
     startScale.value = initialScale ?? 1;
-    baseScale.value = initialScale ?? 1;
   }, [initialX, initialY, initialRotation, initialScale]);
 
   const pan = Gesture.Pan()
@@ -223,21 +221,22 @@ function SnowmanPart({
   const gesture = Gesture.Simultaneous(pan, rotation, pinch);
 
   const animatedStyle = useAnimatedStyle(() => {
-    // Scale the container size so touch area matches visual size
+    // Use minimum touch size for small items, but scale up for larger ones
     const scaledSize = PART_SIZE * scale.value;
+    const touchSize = Math.max(scaledSize, MIN_TOUCH_SIZE);
     return {
-      width: scaledSize,
-      height: scaledSize,
+      width: touchSize,
+      height: touchSize,
       transform: [
-        // Position by center, accounting for scaled size
-        { translateX: centerX.value - scaledSize / 2 },
-        { translateY: centerY.value - scaledSize / 2 },
+        // Position by center, accounting for touch area size
+        { translateX: centerX.value - touchSize / 2 },
+        { translateY: centerY.value - touchSize / 2 },
         { rotate: `${rot.value}deg` },
       ],
     };
   });
 
-  // Scale the image to match container
+  // Scale the image based on actual scale value (visual size)
   const imageStyle = useAnimatedStyle(() => {
     const scaledImageSize = 90 * scale.value;
     return {
@@ -262,7 +261,7 @@ const styles = StyleSheet.create({
   canvasBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity: 0.75 },
   menuBar: { marginTop: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
   menuInner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, marginBottom: 12 },
-  menuItem: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#61a9c5', alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  menuItem: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(45,157,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 6 },
   menuItemLast: { marginRight: 0 },
   menuImage: { width: 42, height: 42, resizeMode: 'contain' },
   resetButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },

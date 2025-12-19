@@ -297,6 +297,7 @@ function TreeSprite({ source, gesture, width, height, transX, transY }) {
 }
 
 const DECORATION_SIZE = 90; // matches styles.decoration width/height
+const MIN_TOUCH_SIZE = 80; // minimum touch area for reliable gestures
 
 function DecorationPiece({
 	id,
@@ -394,21 +395,22 @@ function DecorationPiece({
 	const gesture = Gesture.Simultaneous(pan, rotation, pinch);
 
 	const animatedStyle = useAnimatedStyle(() => {
-		// Scale the container size so touch area matches visual size
+		// Use minimum touch size for small items, but scale up for larger ones
 		const scaledSize = DECORATION_SIZE * scale.value;
+		const touchSize = Math.max(scaledSize, MIN_TOUCH_SIZE);
 		return {
-			width: scaledSize,
-			height: scaledSize,
+			width: touchSize,
+			height: touchSize,
 			transform: [
-				// Position by center, accounting for scaled size
-				{ translateX: centerX.value - scaledSize / 2 },
-				{ translateY: centerY.value - scaledSize / 2 },
+				// Position by center, accounting for touch area size
+				{ translateX: centerX.value - touchSize / 2 },
+				{ translateY: centerY.value - touchSize / 2 },
 				{ rotate: `${rot.value}deg` },
 			],
 		};
 	});
 
-	// Scale the image to match container
+	// Scale the image based on actual scale value (visual size)
 	const imageStyle = useAnimatedStyle(() => {
 		const scaledImageSize = 81 * scale.value; // 90% of 90
 		return {
@@ -470,33 +472,33 @@ const styles = StyleSheet.create({
 		resizeMode: 'contain',
 	},
 	menuBar: {
-		marginTop: 18,
-		paddingTop: 12,
-		paddingBottom: 4,
+		marginTop: 16,
+		paddingVertical: 12,
 		borderTopWidth: 1,
-		borderTopColor: 'rgba(255,255,255,0.1)',
+		borderTopColor: 'rgba(255,255,255,0.08)',
 	},
 	menuInner: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		paddingHorizontal: 6
+		paddingHorizontal: 6,
+		marginBottom: 12,
 	},
 	menuItem: {
-		width: 64,
-		height: 64,
-		borderRadius: 18,
+		width: 56,
+		height: 56,
+		borderRadius: 16,
 		backgroundColor: 'rgba(45,157,255,0.18)',
 		borderWidth: 1,
 		borderColor: 'rgba(255,255,255,0.2)',
 		alignItems: 'center',
 		justifyContent: 'center',
-		marginBottom: 10,
-		marginRight: 12,
+		marginRight: 6,
 	},
 	menuItemLast: { marginRight: 0 },
 	menuImage: {
-		width: 46,
-		height: 46,
+		width: 42,
+		height: 42,
+		resizeMode: 'contain',
 	},
 	resetButton: {
 		alignSelf: 'center',
@@ -505,7 +507,6 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		borderWidth: 1,
 		borderColor: 'rgba(255,255,255,0.2)',
-		marginTop: 10,
 	},
 	resetText: {
 		color: '#ffffff',

@@ -138,7 +138,7 @@ export default function App() {
           <Stack.Screen
             name="TreeDecorate"
             component={TreeDecorate}
-            options={{ title: 'Tree Canvas', headerTitleAlign: 'center' }}
+            options={{ title: 'Decorate a Tree', headerTitleAlign: 'center' }}
           />
           <Stack.Screen name="Snowman" component={Snowman} options={{ title: 'Build a Snowman' }} />
           <Stack.Screen name="Snowflake" component={Snowflake} options={{ title: 'Make a Snowflake' }} />
