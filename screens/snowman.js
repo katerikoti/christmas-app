@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,16 +22,8 @@ const PART_IMAGES = {
   carrot: require('../assets/carrot.png'),
 };
 
-const PART_KEYS = Object.keys(PART_IMAGES);
-
-function shuffle(array) {
-  const copy = [...array];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
+// Fixed menu order
+const MENU_ORDER = ['snowball', 'coal', 'carrot', 'snowmanhat', 'scarf', 'broom'];
 
 export default function Snowman() {
   const [parts, setParts] = useState([]); // {id, key, x, y, rotation, scale}
@@ -40,8 +32,6 @@ export default function Snowman() {
   const canvasOffset = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const canvasLeft = useSharedValue(0);
   const canvasTop = useSharedValue(0);
-
-  const menuOrder = useMemo(() => shuffle(PART_KEYS), []);
 
   function onLayoutCanvas(e) {
     const { x, y, width, height } = e.nativeEvent.layout;
@@ -112,7 +102,7 @@ export default function Snowman() {
 
         <View style={styles.menuBar}>
           <View style={styles.menuInner}>
-            {menuOrder.map(key => (
+            {MENU_ORDER.map(key => (
               <TouchableOpacity key={key} style={styles.menuItem} onPress={() => addPart(key)}>
                 <Image source={PART_IMAGES[key]} style={styles.menuImage} />
               </TouchableOpacity>
@@ -127,6 +117,8 @@ export default function Snowman() {
   );
 }
 
+const PART_SIZE = 100; // matches styles.part width/height
+
 function SnowmanPart({
   id,
   assetKey,
@@ -140,21 +132,25 @@ function SnowmanPart({
   onBringToFront,
   onUpdate,
 }) {
-  const transX = useSharedValue(initialX);
-  const transY = useSharedValue(initialY);
+  // Store center position for proper transform origin behavior
+  // Use the base size for center calculation (scale is applied via transform)
+  const centerX = useSharedValue(initialX + PART_SIZE / 2);
+  const centerY = useSharedValue(initialY + PART_SIZE / 2);
   const rot = useSharedValue(initialRotation || 0);
   const scale = useSharedValue(initialScale ?? 1);
   const startScale = useSharedValue(initialScale ?? 1);
+  const baseScale = useSharedValue(initialScale ?? 1); // remember initial scale for reference
   const startRot = useSharedValue(0);
   const grabX = useSharedValue(0);
   const grabY = useSharedValue(0);
 
   useEffect(() => {
-    transX.value = initialX;
-    transY.value = initialY;
+    centerX.value = initialX + PART_SIZE / 2;
+    centerY.value = initialY + PART_SIZE / 2;
     rot.value = initialRotation || 0;
     scale.value = initialScale ?? 1;
     startScale.value = initialScale ?? 1;
+    baseScale.value = initialScale ?? 1;
   }, [initialX, initialY, initialRotation, initialScale]);
 
   const pan = Gesture.Pan()
@@ -163,18 +159,22 @@ function SnowmanPart({
       runOnJS(onBringToFront)(id);
       const touchAbsX = e.absoluteX ?? (e.x + canvasLeft.value);
       const touchAbsY = e.absoluteY ?? (e.y + canvasTop.value);
-      grabX.value = touchAbsX - (canvasLeft.value + transX.value);
-      grabY.value = touchAbsY - (canvasTop.value + transY.value);
+      // Grab offset from center of element
+      grabX.value = touchAbsX - (canvasLeft.value + centerX.value);
+      grabY.value = touchAbsY - (canvasTop.value + centerY.value);
     })
     .onUpdate(e => {
       if (activeIdSV.value !== id) return;
       const touchAbsX = e.absoluteX ?? (canvasLeft.value + e.x);
       const touchAbsY = e.absoluteY ?? (canvasTop.value + e.y);
-      transX.value = touchAbsX - canvasLeft.value - grabX.value;
-      transY.value = touchAbsY - canvasTop.value - grabY.value;
+      centerX.value = touchAbsX - canvasLeft.value - grabX.value;
+      centerY.value = touchAbsY - canvasTop.value - grabY.value;
     })
     .onEnd(() => {
-      if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+      // Convert center back to top-left for storage
+      const topLeftX = centerX.value - PART_SIZE / 2;
+      const topLeftY = centerY.value - PART_SIZE / 2;
+      if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
       if (activeIdSV.value === id) activeIdSV.value = null;
     });
 
@@ -191,7 +191,9 @@ function SnowmanPart({
       rot.value = startRot.value + deg;
     })
     .onEnd(() => {
-      if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+      const topLeftX = centerX.value - PART_SIZE / 2;
+      const topLeftY = centerY.value - PART_SIZE / 2;
+      if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
       if (activeIdSV.value === id) activeIdSV.value = null;
     });
 
@@ -207,25 +209,42 @@ function SnowmanPart({
       scale.value = startScale.value * s;
     })
     .onEnd(() => {
-      if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+      const topLeftX = centerX.value - PART_SIZE / 2;
+      const topLeftY = centerY.value - PART_SIZE / 2;
+      if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
       if (activeIdSV.value === id) activeIdSV.value = null;
     });
 
   const gesture = Gesture.Simultaneous(pan, rotation, pinch);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: transX.value },
-      { translateY: transY.value },
-      { rotate: `${rot.value}deg` },
-      { scale: scale.value },
-    ],
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    // Scale the container size so touch area matches visual size
+    const scaledSize = PART_SIZE * scale.value;
+    return {
+      width: scaledSize,
+      height: scaledSize,
+      transform: [
+        // Position by center, accounting for scaled size
+        { translateX: centerX.value - scaledSize / 2 },
+        { translateY: centerY.value - scaledSize / 2 },
+        { rotate: `${rot.value}deg` },
+      ],
+    };
+  });
+
+  // Scale the image to match container
+  const imageStyle = useAnimatedStyle(() => {
+    const scaledImageSize = 90 * scale.value;
+    return {
+      width: scaledImageSize,
+      height: scaledImageSize,
+    };
+  });
 
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.part, animatedStyle]}>
-        <Image source={PART_IMAGES[assetKey]} style={styles.partImage} />
+        <Animated.Image source={PART_IMAGES[assetKey]} style={[styles.partImage, imageStyle]} />
       </Animated.View>
     </GestureDetector>
   );
@@ -242,6 +261,6 @@ const styles = StyleSheet.create({
   menuImage: { width: 42, height: 42, resizeMode: 'contain' },
   resetButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   resetText: { color: '#ffffff', fontWeight: '600', fontSize: 14 },
-  part: { position: 'absolute', width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
-  partImage: { width: 90, height: 90, resizeMode: 'contain' },
+  part: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  partImage: { resizeMode: 'contain' },
 });

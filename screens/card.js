@@ -164,25 +164,26 @@ export default function Card() {
     return false;
   }
 
+  const STICKER_SIZE = 48; // matches styles.sticker width/height
+
   /* Sticker component: separate, uses transforms only (no left/top from parent).
      Returns final coordinates through onUpdate(id,x,y,rotation). */
   function Sticker({ emoji, id, initialX = 0, initialY = 0, initialRotation = 0, initialScale = 1, onUpdate, onGestureStart, onGestureEnd }) {
-    const transX = useSharedValue(initialX);
-    const transY = useSharedValue(initialY);
+    // Store center position for proper transform origin behavior
+    const centerX = useSharedValue(initialX + STICKER_SIZE / 2);
+    const centerY = useSharedValue(initialY + STICKER_SIZE / 2);
     const rot = useSharedValue(initialRotation || 0);
     const scale = useSharedValue(initialScale ?? 1);
     const startScale = useSharedValue(initialScale ?? 1);
 
     useEffect(() => {
-      transX.value = initialX;
-      transY.value = initialY;
+      centerX.value = initialX + STICKER_SIZE / 2;
+      centerY.value = initialY + STICKER_SIZE / 2;
       rot.value = initialRotation || 0;
       scale.value = initialScale ?? 1;
       startScale.value = initialScale ?? 1;
     }, [initialX, initialY, initialRotation, initialScale]);
 
-    let startX = 0;
-    let startY = 0;
     const startRot = useSharedValue(0);
     const interacting = useSharedValue(false);
     const grabX = useSharedValue(0);
@@ -190,15 +191,12 @@ export default function Card() {
 
     const pan = Gesture.Pan()
       .onStart(e => {
-        // record starting transform
-        startX = transX.value;
-        startY = transY.value;
         // compute touch point in screen coordinates (absoluteX preferred)
         const touchAbsX = (e.absoluteX ?? (e.x + canvasLeft.value));
         const touchAbsY = (e.absoluteY ?? (e.y + canvasTop.value));
-        // grab offset = touch point - sticker's top-left (in screen coords)
-        grabX.value = touchAbsX - (canvasLeft.value + transX.value);
-        grabY.value = touchAbsY - (canvasTop.value + transY.value);
+        // grab offset from center of sticker
+        grabX.value = touchAbsX - (canvasLeft.value + centerX.value);
+        grabY.value = touchAbsY - (canvasTop.value + centerY.value);
         if (!interacting.value) {
           interacting.value = true;
           if (onGestureStart) runOnJS(onGestureStart)();
@@ -208,12 +206,15 @@ export default function Card() {
         // Prefer absolute coordinates when available so the finger stays anchored
         const touchAbsX = (e.absoluteX ?? (canvasLeft.value + e.x));
         const touchAbsY = (e.absoluteY ?? (canvasTop.value + e.y));
-        // New top-left = finger position (relative to canvas) minus grab offset
-        transX.value = touchAbsX - canvasLeft.value - grabX.value;
-        transY.value = touchAbsY - canvasTop.value - grabY.value;
+        // New center = finger position (relative to canvas) minus grab offset
+        centerX.value = touchAbsX - canvasLeft.value - grabX.value;
+        centerY.value = touchAbsY - canvasTop.value - grabY.value;
       })
       .onEnd(() => {
-        if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+        // Convert center back to top-left for storage
+        const topLeftX = centerX.value - STICKER_SIZE / 2;
+        const topLeftY = centerY.value - STICKER_SIZE / 2;
+        if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
         if (interacting.value) {
           interacting.value = false;
           if (onGestureEnd) runOnJS(onGestureEnd)();
@@ -234,7 +235,9 @@ export default function Card() {
         rot.value = startRot.value + deg;
       })
       .onEnd(() => {
-        if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+        const topLeftX = centerX.value - STICKER_SIZE / 2;
+        const topLeftY = centerY.value - STICKER_SIZE / 2;
+        if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
         if (interacting.value) {
           interacting.value = false;
           if (onGestureEnd) runOnJS(onGestureEnd)();
@@ -254,7 +257,9 @@ export default function Card() {
         scale.value = startScale.value * s;
       })
       .onEnd(() => {
-        if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+        const topLeftX = centerX.value - STICKER_SIZE / 2;
+        const topLeftY = centerY.value - STICKER_SIZE / 2;
+        if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
         if (interacting.value) {
           interacting.value = false;
           if (onGestureEnd) runOnJS(onGestureEnd)();
@@ -263,14 +268,29 @@ export default function Card() {
 
     const gesture = Gesture.Simultaneous(pan, rotation, pinch);
 
-    const aStyle = useAnimatedStyle(() => ({
-      transform: [
-        { translateX: transX.value },
-        { translateY: transY.value },
-        { rotate: `${rot.value}deg` },
-        { scale: scale.value },
-      ],
-    }));
+    const aStyle = useAnimatedStyle(() => {
+      // Scale the container size so touch area matches visual size
+      const scaledSize = STICKER_SIZE * scale.value;
+      return {
+        width: scaledSize,
+        height: scaledSize,
+        transform: [
+          // Position by center, accounting for scaled size
+          { translateX: centerX.value - scaledSize / 2 },
+          { translateY: centerY.value - scaledSize / 2 },
+          { rotate: `${rot.value}deg` },
+        ],
+      };
+    });
+
+    // Scale the image to match container
+    const imageStyle = useAnimatedStyle(() => {
+      const scaledImageSize = 40 * scale.value;
+      return {
+        width: scaledImageSize,
+        height: scaledImageSize,
+      };
+    });
 
     return (
       <GestureDetector gesture={gesture}>
@@ -283,7 +303,7 @@ export default function Card() {
           ]}
         >
           {/* Render sticker image from assets mapping. Keep prop name `emoji` for compatibility. */}
-          <Image source={STICKER_IMAGES[emoji]} style={styles.stickerImage} />
+          <Animated.Image source={STICKER_IMAGES[emoji]} style={[styles.stickerImage, imageStyle]} />
         </Animated.View>
       </GestureDetector>
     );
@@ -493,12 +513,12 @@ const styles = StyleSheet.create({
   sizeButtonSmall: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', marginRight: 6, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#fff' },
 
   /* Sticker */
-  sticker: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  sticker: { alignItems: 'center', justifyContent: 'center' },
   stickerEmoji: { fontSize: 36 },
   stickerGrid: { flexDirection: 'row', flexWrap: 'wrap', maxWidth: 180 },
   pickerStickerSmall: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', margin: 2, borderRadius: 8, backgroundColor: 'transparent' },
   pickerImageSmall: { width: 26, height: 26, resizeMode: 'contain' },
-  stickerImage: { width: 40, height: 40, resizeMode: 'contain' },
+  stickerImage: { resizeMode: 'contain' },
 
   /* Bottom actions */
   menuAction: { width: 36, height: 36, borderRadius: 6, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffffff' },

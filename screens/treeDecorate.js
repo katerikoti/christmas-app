@@ -296,6 +296,8 @@ function TreeSprite({ source, gesture, width, height, transX, transY }) {
 	);
 }
 
+const DECORATION_SIZE = 90; // matches styles.decoration width/height
+
 function DecorationPiece({
 	id,
 	source,
@@ -309,8 +311,9 @@ function DecorationPiece({
 	onBringToFront,
 	onUpdate,
 }) {
-	const transX = useSharedValue(initialX);
-	const transY = useSharedValue(initialY);
+	// Store center position for proper transform origin behavior
+	const centerX = useSharedValue(initialX + DECORATION_SIZE / 2);
+	const centerY = useSharedValue(initialY + DECORATION_SIZE / 2);
 	const rot = useSharedValue(initialRotation || 0);
 	const scale = useSharedValue(initialScale ?? 1);
 	const startScale = useSharedValue(initialScale ?? 1);
@@ -319,8 +322,8 @@ function DecorationPiece({
 	const grabY = useSharedValue(0);
 
 	useEffect(() => {
-		transX.value = initialX;
-		transY.value = initialY;
+		centerX.value = initialX + DECORATION_SIZE / 2;
+		centerY.value = initialY + DECORATION_SIZE / 2;
 		rot.value = initialRotation || 0;
 		scale.value = initialScale ?? 1;
 		startScale.value = initialScale ?? 1;
@@ -332,18 +335,22 @@ function DecorationPiece({
 			runOnJS(onBringToFront)(id);
 			const touchAbsX = e.absoluteX ?? (e.x + canvasLeft.value);
 			const touchAbsY = e.absoluteY ?? (e.y + canvasTop.value);
-			grabX.value = touchAbsX - (canvasLeft.value + transX.value);
-			grabY.value = touchAbsY - (canvasTop.value + transY.value);
+			// Grab offset from center of element
+			grabX.value = touchAbsX - (canvasLeft.value + centerX.value);
+			grabY.value = touchAbsY - (canvasTop.value + centerY.value);
 		})
 		.onUpdate(e => {
 			if (activeIdSV.value !== id) return;
 			const touchAbsX = e.absoluteX ?? (canvasLeft.value + e.x);
 			const touchAbsY = e.absoluteY ?? (canvasTop.value + e.y);
-			transX.value = touchAbsX - canvasLeft.value - grabX.value;
-			transY.value = touchAbsY - canvasTop.value - grabY.value;
+			centerX.value = touchAbsX - canvasLeft.value - grabX.value;
+			centerY.value = touchAbsY - canvasTop.value - grabY.value;
 		})
 		.onEnd(() => {
-			if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+			// Convert center back to top-left for storage
+			const topLeftX = centerX.value - DECORATION_SIZE / 2;
+			const topLeftY = centerY.value - DECORATION_SIZE / 2;
+			if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
 			if (activeIdSV.value === id) activeIdSV.value = null;
 		});
 
@@ -360,7 +367,9 @@ function DecorationPiece({
 			rot.value = startRot.value + deg;
 		})
 		.onEnd(() => {
-			if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+			const topLeftX = centerX.value - DECORATION_SIZE / 2;
+			const topLeftY = centerY.value - DECORATION_SIZE / 2;
+			if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
 			if (activeIdSV.value === id) activeIdSV.value = null;
 		});
 
@@ -376,25 +385,42 @@ function DecorationPiece({
 			scale.value = startScale.value * s;
 		})
 		.onEnd(() => {
-			if (onUpdate) runOnJS(onUpdate)(id, Math.round(transX.value), Math.round(transY.value), Math.round(rot.value), Number(scale.value.toFixed(2)));
+			const topLeftX = centerX.value - DECORATION_SIZE / 2;
+			const topLeftY = centerY.value - DECORATION_SIZE / 2;
+			if (onUpdate) runOnJS(onUpdate)(id, Math.round(topLeftX), Math.round(topLeftY), Math.round(rot.value), Number(scale.value.toFixed(2)));
 			if (activeIdSV.value === id) activeIdSV.value = null;
 		});
 
 	const gesture = Gesture.Simultaneous(pan, rotation, pinch);
 
-	const animatedStyle = useAnimatedStyle(() => ({
-		transform: [
-			{ translateX: transX.value },
-			{ translateY: transY.value },
-			{ rotate: `${rot.value}deg` },
-			{ scale: scale.value },
-		],
-	}));
+	const animatedStyle = useAnimatedStyle(() => {
+		// Scale the container size so touch area matches visual size
+		const scaledSize = DECORATION_SIZE * scale.value;
+		return {
+			width: scaledSize,
+			height: scaledSize,
+			transform: [
+				// Position by center, accounting for scaled size
+				{ translateX: centerX.value - scaledSize / 2 },
+				{ translateY: centerY.value - scaledSize / 2 },
+				{ rotate: `${rot.value}deg` },
+			],
+		};
+	});
+
+	// Scale the image to match container
+	const imageStyle = useAnimatedStyle(() => {
+		const scaledImageSize = 81 * scale.value; // 90% of 90
+		return {
+			width: scaledImageSize,
+			height: scaledImageSize,
+		};
+	});
 
 	return (
 		<GestureDetector gesture={gesture}>
 			<Animated.View style={[styles.decoration, animatedStyle]}>
-				<Image source={source} style={styles.decorationImage} resizeMode="contain" />
+				<Animated.Image source={source} style={[styles.decorationImage, imageStyle]} resizeMode="contain" />
 			</Animated.View>
 		</GestureDetector>
 	);
@@ -436,15 +462,12 @@ const styles = StyleSheet.create({
 	},
 	decoration: {
 		position: 'absolute',
-		width: 90,
-		height: 90,
 		alignItems: 'center',
 		justifyContent: 'center',
 		zIndex: 2,
 	},
 	decorationImage: {
-		width: '90%',
-		height: '90%',
+		resizeMode: 'contain',
 	},
 	menuBar: {
 		marginTop: 18,
@@ -456,7 +479,7 @@ const styles = StyleSheet.create({
 	menuInner: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		paddingHorizontal: 6,
+		paddingHorizontal: 6
 	},
 	menuItem: {
 		width: 64,
