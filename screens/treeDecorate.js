@@ -143,7 +143,11 @@ export default function TreeDecorate({ route }) {
 		const ch = canvasOffset.current.height || SCREEN_HEIGHT;
 		const x = Math.round((cw - 80) / 2);
 		const y = Math.round((ch - 100) / 2);
-		setDecorations(current => [...current, { id, source: piece.source, x, y, rotation: 0, scale: 1 }]);
+		// Set initial scale - tree toppers (x.1) and garlands (x.6) stay at 1, others are smaller
+		const isTreeTopper = piece.key.endsWith('-1');
+		const isGarland = piece.key.endsWith('-6');
+		const initialScale = (isTreeTopper || isGarland) ? 1 : 0.45;
+		setDecorations(current => [...current, { id, source: piece.source, x, y, rotation: 0, scale: initialScale }]);
 	}
 
 	function updateDecoration(id, x, y, rotation, scale) {
